@@ -70,6 +70,12 @@ static void dump(int value, string &out) {
     out += buf;
 }
 
+static void dump(int64_t value, string &out) {
+    char buf[32];
+    snprintf(buf, sizeof buf, "%I64d", value);
+    out += buf;
+}
+
 static void dump(bool value, string &out) {
     out += value ? "true" : "false";
 }
@@ -173,6 +179,7 @@ protected:
 class JsonDouble final : public Value<Json::NUMBER, double> {
     double number_value() const override { return m_value; }
     int int_value() const override { return static_cast<int>(m_value); }
+    int64_t int64_value() const override { return m_value; }
     bool equals(const JsonValue * other) const override { return m_value == other->number_value(); }
     bool less(const JsonValue * other)   const override { return m_value <  other->number_value(); }
 public:
@@ -182,10 +189,21 @@ public:
 class JsonInt final : public Value<Json::NUMBER, int> {
     double number_value() const override { return m_value; }
     int int_value() const override { return m_value; }
+    int64_t int64_value() const override { return m_value; }
     bool equals(const JsonValue * other) const override { return m_value == other->number_value(); }
     bool less(const JsonValue * other)   const override { return m_value <  other->number_value(); }
 public:
     explicit JsonInt(int value) : Value(value) {}
+};
+
+class JsonInt64 final : public Value<Json::NUMBER, int64_t> {
+    double number_value() const override { return m_value; }
+    int int_value() const override { return m_value; }
+    int64_t int64_value() const override { return m_value; }
+    bool equals(const JsonValue * other) const override { return m_value == other->number_value(); }
+    bool less(const JsonValue * other)   const override { return m_value <  other->number_value(); }
+public:
+    explicit JsonInt64(int64_t value) : Value(value) {}
 };
 
 class JsonBoolean final : public Value<Json::BOOL, bool> {
@@ -254,6 +272,7 @@ Json::Json() noexcept                  : m_ptr(statics().null) {}
 Json::Json(std::nullptr_t) noexcept    : m_ptr(statics().null) {}
 Json::Json(double value)               : m_ptr(make_shared<JsonDouble>(value)) {}
 Json::Json(int value)                  : m_ptr(make_shared<JsonInt>(value)) {}
+Json::Json(int64_t value)              : m_ptr(make_shared<JsonInt64>(value)) {}
 Json::Json(bool value)                 : m_ptr(value ? statics().t : statics().f) {}
 Json::Json(const string &value)        : m_ptr(make_shared<JsonString>(value)) {}
 Json::Json(string &&value)             : m_ptr(make_shared<JsonString>(move(value))) {}
@@ -270,6 +289,7 @@ Json::Json(Json::object &&values)      : m_ptr(make_shared<JsonObject>(move(valu
 Json::Type Json::type()                           const { return m_ptr->type();         }
 double Json::number_value()                       const { return m_ptr->number_value(); }
 int Json::int_value()                             const { return m_ptr->int_value();    }
+int64_t Json::int64_value()                       const { return m_ptr->int64_value();  }
 bool Json::bool_value()                           const { return m_ptr->bool_value();   }
 const string & Json::string_value()               const { return m_ptr->string_value(); }
 const vector<Json> & Json::array_items()          const { return m_ptr->array_items();  }
@@ -279,6 +299,7 @@ const Json & Json::operator[] (const string &key) const { return (*m_ptr)[key]; 
 
 double                    JsonValue::number_value()              const { return 0; }
 int                       JsonValue::int_value()                 const { return 0; }
+int64_t                   JsonValue::int64_value()               const { return 0; }
 bool                      JsonValue::bool_value()                const { return false; }
 const string &            JsonValue::string_value()              const { return statics().empty_string; }
 const vector<Json> &      JsonValue::array_items()               const { return statics().empty_vector; }
@@ -441,9 +462,9 @@ struct JsonParser final {
      */
     char get_next_token() {
         consume_garbage();
-        if (failed) return static_cast<char>(0);
+        if (failed) return (char)0;
         if (i == str.size())
-            return fail("unexpected end of input", static_cast<char>(0));
+            return fail("unexpected end of input", (char)0);
 
         return str[i++];
     }
