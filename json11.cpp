@@ -72,7 +72,11 @@ static void dump(int value, string &out) {
 
 static void dump(int64_t value, string &out) {
     char buf[32];
+#ifdef WIN32
     snprintf(buf, sizeof buf, "%I64d", value);
+#else
+    snprintf(buf, sizeof buf, "%lld", value);
+#endif
     out += buf;
 }
 
